@@ -22,7 +22,7 @@ class PitticaTrovaprezzi extends Module
     {
         $this->name          = 'pitticatrovaprezzi';
         $this->tab           = 'front_office_features';
-        $this->version       = '1.0.0';
+        $this->version       = '1.1.0';
         $this->author        = 'Pittica';
         $this->need_instance = 1;
         $this->bootstrap     = 1;
@@ -46,7 +46,7 @@ class PitticaTrovaprezzi extends Module
         reset($carriers);
         Configuration::updateValue('PITTICA_TROVAPREZZI_CARRIER', !empty($carriers[0]['id_carrier']) ? (int) $carriers[0]['id_carrier'] : -1);
 
-        return parent::install() && $this->installTab();
+        return parent::install() && $this->installTab() && $this->registerHook('displayFooterAfter');
     }
 
     public function uninstall()
@@ -178,9 +178,9 @@ class PitticaTrovaprezzi extends Module
         return $helper->generateForm($fields_form);
     }
 
-    public function hookDisplayCustomerAccount($params)
+    public function hookDisplayFooterAfter($params)
     {
-        return $this->display(__FILE__, 'displayCustomerAccount.tpl');
+        return $this->display(__FILE__, 'displayFooterAfter.tpl');
     }
 
     public function getFilePath()

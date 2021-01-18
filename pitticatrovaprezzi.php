@@ -23,7 +23,7 @@ class PitticaTrovaprezzi extends Module
     {
         $this->name          = 'pitticatrovaprezzi';
         $this->tab           = 'front_office_features';
-        $this->version       = '1.2.0';
+        $this->version       = '1.2.1';
         $this->author        = 'Pittica';
         $this->need_instance = 1;
         $this->bootstrap     = 1;

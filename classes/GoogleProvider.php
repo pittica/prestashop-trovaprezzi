@@ -14,6 +14,19 @@ require_once(dirname(__FILE__) . '/Provider.php');
 
 class GoogleProvider extends Provider
 {
+    protected $country;
+    protected $context;
+    protected $carrier;
+    protected $locale;
+
+    public function __construct()
+    {
+        $this->country = Country::getIsoById((int)Configuration::get('PS_COUNTRY_DEFAULT'));
+        $this->context = Context::getContext();
+        $this->carrier = new Carrier((int)Configuration::get('PITTICA_TROVAPREZZI_CARRIER'));
+        $this->locale = Tools::getContextLocale($this->context);
+    }
+
     public function getElementRoot()
     {
         return 'rss';
@@ -39,28 +52,24 @@ class GoogleProvider extends Provider
 
     public function renderItem($xml, $offer)
     {
-        $context = Context::getContext();
-        $carrier = new Carrier((int)Configuration::get('PITTICA_TROVAPREZZI_CARRIER'));
-        $locale = Tools::getContextLocale($context);
-
         $xml->writeElement('title',  $offer->name);
-        $xml->writeElement('description',  $offer->description);
+        $xml->writeElement('description',  !empty($offer->description) ? $offer->description : $offer->name);
         $xml->writeElement('link',  $offer->link);
         $xml->writeElement('g:id', $offer->id_product . ($offer->id_product_attribute ? ('-' . $offer->id_product_attribute) : ''));
         $xml->writeElement('g:image_link', $offer->image_1);
-        $xml->writeElement('g:price', $locale->formatPrice($offer->original_price, $context->currency->iso_code));
+        $xml->writeElement('g:price', $this->locale->formatPrice($offer->original_price, $this->context->currency->iso_code));
 
         if ($offer->original_price != $offer->price) {
-            $xml->writeElement('g:sale_price', $locale->formatPrice($offer->price, $context->currency->iso_code));
+            $xml->writeElement('g:sale_price', $this->locale->formatPrice($offer->price, $this->context->currency->iso_code));
         }
 
         $xml->writeElement('g:gtin', !empty($offer->ean_code) ? $offer->ean_code : $offer->part_number);
         $xml->writeElement('g:brand', $offer->brand);
-        $xml->writeElement('g:availability', $offer->stock);
+        $xml->writeElement('g:availability', $offer->stock > 0 ? 'in stock' : 'out of stock');
         $xml->startElement('g:shipping');
-        $xml->writeElement('g:country', Country::getIsoById((int)Configuration::get('PS_COUNTRY_DEFAULT')));
-        $xml->writeElement('g:service', $carrier->name);
-        $xml->writeElement('g:price', $locale->formatPrice($offer->shipping_cost, $context->currency->iso_code));
+        $xml->writeElement('g:country', $this->country);
+        $xml->writeElement('g:service', $this->carrier->name);
+        $xml->writeElement('g:price', $this->locale->formatPrice($offer->shipping_cost, $this->context->currency->iso_code));
         $xml->endElement();
 
         if (!empty($offer->image_2)) {
@@ -81,7 +90,7 @@ class GoogleProvider extends Provider
         $meta = Meta::getHomeMetas((int)Configuration::get('PS_LANG_DEFAULT'), 'index');
 
         $xml->writeElement('title', Configuration::get('PS_SHOP_NAME'));
-        $xml->writeElement('link', Context::getContext()->link->getBaseLink());
+        $xml->writeElement('link', $this->context->link->getBaseLink());
         $xml->writeElement('description', $meta['meta_description']);
 
         $offers = TrovaprezziOffer::getOffers();

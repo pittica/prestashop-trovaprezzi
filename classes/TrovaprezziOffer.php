@@ -110,26 +110,4 @@ class TrovaprezziOffer extends ObjectModel
 	{
 		return Db::getInstance()->execute('TRUNCATE `' . _DB_PREFIX_ . self::TABLE_NAME . '`');
 	}
-
-	public function toArray()
-	{
-		return array(
-			'Name' => $this->name,
-			'Brand' => $this->brand,
-			'Description' => $this->description,
-			'OriginalPrice' => $this->original_price,
-			'Price' => $this->price,
-			'Code' => $this->id_product . ($this->id_product_attribute ? ('-' . $this->id_product_attribute) : ''),
-			'Link' => $this->link,
-			'Stock' => $this->stock,
-			'Categories' => $this->categories,
-			'Image' => $this->image_1,
-			'ShippingCost' => $this->shipping_cost,
-			'PartNumber' => $this->part_number,
-			'EanCode' => $this->ean_code,
-			'Weight' => $this->weight,
-			'Image2' => $this->image_2,
-			'Image3' => $this->image_3
-		);
-	}
 }

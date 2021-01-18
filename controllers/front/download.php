@@ -15,16 +15,18 @@ class pitticatrovaprezzidownloadModuleFrontController extends ModuleFrontControl
     public function initContent()
     {
         parent::initContent();
-        
+
         if (Tools::getValue('token') === $this->module->getToken()) {
-            if (file_exists($this->module->getFilePath())) {
+            $path = $this->module->getFilePath(Tools::getValue('provider', 'trovaprezzi'));
+
+            if (file_exists($path)) {
                 header($_SERVER['SERVER_PROTOCOL'] . ' 200 OK');
                 header('Cache-Control: public');
                 header('Content-Type: text/xml');
-                readfile($this->module->getFilePath());
+                readfile($path);
             }
         }
-        
+
         die();
     }
 }

@@ -15,11 +15,11 @@ class pitticatrovaprezzigenerateModuleFrontController extends ModuleFrontControl
     public function initContent()
     {
         parent::initContent();
-        
+
         if (Tools::getValue('token') === $this->module->getToken()) {
-            $this->module->generate();
+            $this->module->generate((int)Tools::getValue('refresh', true), Tools::getValue('provider'));
         }
-        
+
         die();
     }
 }

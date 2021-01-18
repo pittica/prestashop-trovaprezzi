@@ -15,6 +15,7 @@ if (!defined('_PS_VERSION_')) {
 }
 
 require_once(dirname(__FILE__) . '/classes/TrovaprezziOffer.php');
+require_once(dirname(__FILE__) . '/classes/Provider.php');
 
 class PitticaTrovaprezzi extends Module
 {
@@ -22,110 +23,123 @@ class PitticaTrovaprezzi extends Module
     {
         $this->name          = 'pitticatrovaprezzi';
         $this->tab           = 'front_office_features';
-        $this->version       = '1.1.1';
+        $this->version       = '1.2.0';
         $this->author        = 'Pittica';
         $this->need_instance = 1;
         $this->bootstrap     = 1;
-        
+
         parent::__construct();
-        
+
         $this->displayName = $this->l('TrovaPrezzi');
         $this->description = $this->l('Creates an XML feed for TrovaPrezzi.it.');
-        
+
         $this->ps_versions_compliancy = array(
             'min' => '1.7',
             'max' => _PS_VERSION_
         );
     }
-    
+
     public function install()
     {
         include(dirname(__FILE__) . '/sql/install.php');
-        
+
         $carriers = Carrier::getCarriers((int) Configuration::get('PS_LANG_DEFAULT'), true);
         reset($carriers);
         Configuration::updateValue('PITTICA_TROVAPREZZI_CARRIER', !empty($carriers[0]['id_carrier']) ? (int) $carriers[0]['id_carrier'] : -1);
-        
+
         return parent::install() && $this->installTab() && $this->registerHook('displayFooterAfter');
     }
-    
+
     public function uninstall()
     {
         include(dirname(__FILE__) . '/sql/uninstall.php');
-        
+
         return parent::uninstall() && $this->uninstallTab() && Configuration::deleteByName('PITTICA_TROVAPREZZI_CARRIER');
     }
-    
+
     public function installTab()
     {
         $id = (int) Tab::getIdFromClassName('AdminTrovaprezzi');
-        
+
         if (!$id) {
             $id = null;
         }
-        
+
         $tab             = new Tab($id);
         $tab->active     = 1;
         $tab->class_name = 'AdminTrovaprezzi';
         $tab->name       = array();
-        
+
         foreach (Language::getLanguages() as $lang) {
             $tab->name[$lang['id_lang']] = 'AdminTrovaprezzi';
         }
-        
+
         $tab->module = $this->name;
-        
+
         return $tab->add();
     }
-    
+
     public function uninstallTab()
     {
         $id = (int) Tab::getIdFromClassName('AdminTrovaprezzi');
-        
+
         if ($id) {
             $tab = new Tab($id);
-            
+
             return $tab->delete();
         }
-        
+
         return false;
     }
-    
+
     public function getContent()
     {
         $output = '';
-        
+
         if (Tools::isSubmit('savepitticatrovaprezzi')) {
             Configuration::updateValue('PITTICA_TROVAPREZZI_CARRIER', Tools::getValue('carrier'));
-            
+
             $output .= $this->displayConfirmation($this->l('Settings updated.'));
         }
-        
+
         return $output . $this->renderForm();
     }
-    
+
     protected function renderForm()
     {
         $lang     = (int) Configuration::get('PS_LANG_DEFAULT');
         $carriers = Carrier::getCarriers($lang, true);
-        
-        $fields_form = array(
+
+        $helper                           = new HelperForm();
+        $helper->module                   = $this;
+        $helper->name_controller          = 'pitticatrovaprezzi';
+        $helper->identifier               = $this->identifier;
+        $helper->token                    = Tools::getAdminTokenLite('AdminModules');
+        $helper->currentIndex             = AdminController::$currentIndex . '&configure=' . $this->name;
+        $helper->default_form_language    = $lang;
+        $helper->allow_employee_form_lang = $lang;
+        $helper->title                    = $this->displayName;
+        $helper->submit_action            = 'savepitticatrovaprezzi';
+
+        $check    = $this->context->link->getAdminLink('AdminTrovaprezzi');
+
+        $helper->fields_value = array(
+            'generate' => $this->getGenerateFeedHtml(null),
+            'feed_trovaprezzi' => $this->getViewFeedHtml('trovaprezzi'),
+            'generate_trovaprezzi' => $this->getGenerateFeedHtml('trovaprezzi'),
+            'feed_google' => $this->getViewFeedHtml('google'),
+            'generate_google' => $this->getGenerateFeedHtml('google'),
+            'carrier' => Configuration::get('PITTICA_TROVAPREZZI_CARRIER'),
+            'check' => '<a href="' . $check . '">' . $this->l('Check non-compliant products.') . '</a>'
+        );
+
+        return $helper->generateForm(array(
             array(
                 'form' => array(
                     'legend' => array(
                         'title' => $this->l('Settings')
                     ),
                     'input' => array(
-                        array(
-                            'type' => 'free',
-                            'label' => $this->l('Feed URL'),
-                            'name' => 'feed'
-                        ),
-                        array(
-                            'type' => 'free',
-                            'label' => $this->l('Generator URL'),
-                            'name' => 'generate'
-                        ),
                         array(
                             'type' => 'select',
                             'label' => $this->l('Carrier:'),
@@ -146,57 +160,90 @@ class PitticaTrovaprezzi extends Module
                         'title' => $this->l('Save')
                     )
                 )
+            ),
+            array(
+                'form' => array(
+                    'legend' => array(
+                        'title' => $this->l('Feed Generator')
+                    ),
+                    'input' => array(
+                        array(
+                            'type' => 'free',
+                            'label' => $this->l('Generator URL'),
+                            'name' => 'generate'
+                        )
+                    ),
+                    'submit' => array(
+                        'title' => $this->l('Save')
+                    )
+                )
+            ),
+            array(
+                'form' => array(
+                    'legend' => array(
+                        'title' => $this->l('Trovaprezzi')
+                    ),
+                    'input' => array(
+                        array(
+                            'type' => 'free',
+                            'label' => $this->l('Feed URL'),
+                            'name' => 'feed_trovaprezzi'
+                        ),
+                        array(
+                            'type' => 'free',
+                            'label' => $this->l('Generator URL'),
+                            'name' => 'generate_trovaprezzi'
+                        )
+                    ),
+                    'submit' => array(
+                        'title' => $this->l('Save')
+                    )
+                )
+            ),
+            array(
+                'form' => array(
+                    'legend' => array(
+                        'title' => $this->l('Google')
+                    ),
+                    'input' => array(
+                        array(
+                            'type' => 'free',
+                            'label' => $this->l('Feed URL'),
+                            'name' => 'feed_google'
+                        ),
+                        array(
+                            'type' => 'free',
+                            'label' => $this->l('Generator URL'),
+                            'name' => 'generate_google'
+                        )
+                    ),
+                    'submit' => array(
+                        'title' => $this->l('Save')
+                    )
+                )
             )
-        );
-        
-        $helper                           = new HelperForm();
-        $helper->module                   = $this;
-        $helper->name_controller          = 'pitticatrovaprezzi';
-        $helper->identifier               = $this->identifier;
-        $helper->token                    = Tools::getAdminTokenLite('AdminModules');
-        $helper->currentIndex             = AdminController::$currentIndex . '&configure=' . $this->name;
-        $helper->default_form_language    = $lang;
-        $helper->allow_employee_form_lang = $lang;
-        $helper->title                    = $this->displayName;
-        $helper->submit_action            = 'savepitticatrovaprezzi';
-        
-        $feed     = $this->context->link->getModuleLink($this->name, 'download', array(
-            'token' => $this->getToken()
         ));
-        $generate = $this->context->link->getModuleLink($this->name, 'generate', array(
-            'token' => $this->getToken()
-        ));
-        $check    = $this->context->link->getAdminLink('AdminTrovaprezzi');
-        
-        $helper->fields_value = array(
-            'feed' => $this->l('XML Feed URL:') . '<br/><a href="' . $feed . '" target="_system">' . $feed . '</a>',
-            'generate' => $this->l('Use this link to generate the XML Feed:') . '<br/><a href="' . $generate . '" target="_system">' . $generate . '</a>',
-            'carrier' => Configuration::get('PITTICA_TROVAPREZZI_CARRIER'),
-            'check' => '<a href="' . $check . '">' . $this->l('Check non-compliant products.') . '</a>'
-        );
-        
-        return $helper->generateForm($fields_form);
     }
-    
+
     public function hookDisplayFooterAfter($params)
     {
         return $this->display(__FILE__, 'displayFooterAfter.tpl');
     }
-    
-    public function getFilePath()
+
+    public function getFilePath($file = 'trovaprezzi')
     {
-        return _PS_MODULE_DIR_ . $this->name . DIRECTORY_SEPARATOR . 'output.xml';
+        return _PS_MODULE_DIR_ . $this->name . DIRECTORY_SEPARATOR . 'output' . DIRECTORY_SEPARATOR . $file . '.xml';
     }
-    
+
     public function getToken()
     {
         return Tools::hash(Configuration::get('PS_SHOP_DOMAIN'));
     }
-    
+
     public function updateProducts()
     {
         TrovaprezziOffer::truncate();
-        
+
         $lang     = (int) Configuration::get('PS_LANG_DEFAULT');
         $root     = (int) Configuration::get('PS_ROOT_CATEGORY');
         $home     = (int) Configuration::get('PS_HOME_CATEGORY');
@@ -204,44 +251,44 @@ class PitticaTrovaprezzi extends Module
         $carrier  = (int) Configuration::get('PITTICA_TROVAPREZZI_CARRIER');
         $country  = new Country((int) Configuration::get('PS_COUNTRY_DEFAULT'));
         $products = Product::getProducts($lang, 0, 0, 'id_product', 'ASC', false, true);
-        
+
         foreach ($products as $p) {
             $product    = new Product((int) $p['id_product'], $lang);
             $attributes = $product->getAttributesResume($lang, ': ');
             $categories = array();
             $cat        = '';
-            
+
             foreach (Product::getProductCategoriesFull($product->id, $lang) as $category) {
                 if ($category['id_category'] != $root && $category['id_category'] != $home) {
                     $categories[] = $category['name'];
                 }
-                
+
                 if ($category['id_category'] == $product->id_category_default) {
                     $cat = $category['link_rewrite'];
                 }
             }
-            
+
             if (!empty($attributes)) {
                 foreach ($attributes as $attribute) {
                     if ((int) $attribute['quantity'] > 0) {
                         $cart    = $this->getCart($currency, $carrier, $lang);
                         $images  = array();
                         $minimal = (!empty($attribute['minimal_quantity']) && $attribute['minimal_quantity'] > 0) ? (int) $attribute['minimal_quantity'] : 1;
-                        
+
                         foreach (Image::getImages($lang, $product->id, (int) $attribute['id_product_attribute']) as $image) {
                             $images[] = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), $image['id_image']);
                         }
-                        
+
                         $cart->updateQty($minimal, $product->id, (int) $attribute['id_product_attribute']);
-                        
+
                         $cover = Image::getGlobalCover($product->id);
-                        
+
                         if (!empty($cover)) {
                             $cover = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), (int) $cover['id_image']);
                         } else {
                             $cover = '';
                         }
-                        
+
                         $offer                       = new TrovaprezziOffer();
                         $offer->id_product           = $product->id;
                         $offer->id_product_attribute = (int) $attribute['id_product_attribute'];
@@ -262,7 +309,7 @@ class PitticaTrovaprezzi extends Module
                         $offer->weight               = (float) $attribute['weight'] + (float) $product->weight;
                         $offer->active               = $product->active;
                         $offer->add();
-                        
+
                         $cart->delete();
                     }
                 }
@@ -271,13 +318,13 @@ class PitticaTrovaprezzi extends Module
                     $images  = array();
                     $cart    = $this->getCart($currency, $carrier, $lang);
                     $minimal = $product->minimal_quantity > 0 ? (int) $product->minimal_quantity : 1;
-                    
+
                     foreach (Image::getImages($lang, $product->id) as $image) {
                         $images[] = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), $image['id_image']);
                     }
-                    
+
                     $cart->updateQty($minimal, $product->id);
-                    
+
                     $offer                 = new TrovaprezziOffer();
                     $offer->id_product     = $product->id;
                     $offer->name           = is_array($product->name) ? $product->name[$lang] : $product->name;
@@ -296,45 +343,33 @@ class PitticaTrovaprezzi extends Module
                     $offer->ean_code       = $product->ean13;
                     $offer->weight         = (float) $product->weight;
                     $offer->add();
-                    
+
                     $cart->delete();
                 }
             }
         }
     }
-    
-    public function generate($refresh = true)
+
+    public function generate($refresh = true, $provider = null)
     {
         if ($refresh) {
             $this->updateProducts();
         }
-        
-        $xml = new XmlWriter();
-        $xml->openUri($this->getFilePath());
-        $xml->startDocument('1.0', 'UTF-8');
-        $xml->startElement('Products');
-        
-        $offers = TrovaprezziOffer::getOffers();
-        
-        foreach ($offers as $offer) {
-            if ($offer->active) {
-                $xml->startElement('Offer');
-                
-                foreach ($offer->toArray() as $key => $element) {
-                    $xml->writeElement($key, $element);
-                }
-                
-                $xml->endElement();
-            }
+
+        $providers = Provider::getProviders();
+
+        if ($provider && in_array($provider, $providers)) {
+            $providers = array($provider);
         }
-        
-        $xml->endElement();
-        $xml->endDocument();
-        $xml->flush();
-        
+
+        foreach ($providers as $p) {
+            $object = Provider::getProvider($p);
+            $object->generate($this->getFilePath($p));
+        }
+
         return true;
     }
-    
+
     protected function getCart($currency, $carrier, $lang)
     {
         $cart              = new Cart(0);
@@ -342,10 +377,10 @@ class PitticaTrovaprezzi extends Module
         $cart->id_lang     = $lang;
         $cart->id_carrier  = $carrier;
         $cart->save();
-        
+
         return $cart;
     }
-    
+
     protected function getImageRewrite($product, $lang)
     {
         if (!empty($product->link_rewrite)) {
@@ -354,9 +389,29 @@ class PitticaTrovaprezzi extends Module
             return is_array($product->name) && !empty($product->name[$lang]) ? $product->name[$lang] : $product->name;
         }
     }
-    
+
     protected function clearDescription($product, $lang)
     {
         return trim(trim(strip_tags(is_array($product->description_short) ? $product->description_short[$lang] : $product->description_short), PHP_EOL), ' ');
+    }
+
+    protected function getGenerateFeedHtml($provider)
+    {
+        $url = $this->context->link->getModuleLink($this->name, 'generate', array(
+            'provider' => $provider,
+            'token' => $this->getToken()
+        ));
+
+        return $this->l('Use this link to generate the XML Feed:') . '<br/><a href="' . $url . '" target="_system">' . $url . '</a>';
+    }
+
+    protected function getViewFeedHtml($provider)
+    {
+        $url = $this->context->link->getModuleLink($this->name, 'download', array(
+            'provider' => $provider,
+            'token' => $this->getToken()
+        ));
+
+        return $this->l('XML Feed URL:') . '<br/><a href="' . $url . '" target="_system">' . $url . '</a>';
     }
 }

@@ -36,4 +36,4 @@ upload/
 
 # Module data
 
-output.xml
+/output/*.xml

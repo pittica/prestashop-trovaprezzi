@@ -34,7 +34,7 @@ class PitticaTrovaprezzi extends Module
         $this->description = $this->l('Creates an XML feed for TrovaPrezzi.it.');
 
         $this->ps_versions_compliancy = array(
-            'min' => '1.7',
+            'min' => '1.7.7.0',
             'max' => _PS_VERSION_
         );
     }

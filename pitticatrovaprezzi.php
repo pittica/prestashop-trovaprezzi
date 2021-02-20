@@ -289,6 +289,8 @@ class PitticaTrovaprezzi extends Module
                             $cover = '';
                         }
 
+                        $ean = empty($attribute['ean13']) ? $product->ean13 : $attribute['ean13'];
+
                         $offer                       = new TrovaprezziOffer();
                         $offer->id_product           = $product->id;
                         $offer->id_product_attribute = (int) $attribute['id_product_attribute'];
@@ -304,8 +306,8 @@ class PitticaTrovaprezzi extends Module
                         $offer->image_2              = !empty($images[1]) ? $images[1] : '';
                         $offer->image_3              = !empty($images[2]) ? $images[2] : '';
                         $offer->shipping_cost        = $cart->getPackageShippingCost($carrier, true, $country);
-                        $offer->part_number          = empty($attribute['reference']) ? $attribute['ean13'] : $attribute['reference'];
-                        $offer->ean_code             = $attribute['ean13'];
+                        $offer->part_number          = empty($attribute['reference']) ? $ean : $attribute['reference'];
+                        $offer->ean_code             = $ean;
                         $offer->weight               = (float) $attribute['weight'] + (float) $product->weight;
                         $offer->active               = $product->active;
                         $offer->add();

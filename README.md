@@ -11,5 +11,4 @@ Trovaprezzi.it XML feed export module for [PrestaShop](https://github.com/presta
 
 ## Copyright
 
-(c) 2020, Pittaca S.r.l.s.
-
+(c) 2020, [Pittica S.r.l.s.](https://pittica.com).

@@ -1,17 +1,35 @@
 <?php
 
 /**
- * prestashop-trovaprezzi
+ * PrestaShop Module - pitticatrovaprezzi
  *
- * Copyright 2020 Pittica S.r.l.s.
+ * Copyright 2020-2021 Pittica S.r.l.
  *
+ * @category  Module
+ * @package   Pittica/Trovaprezzi
  * @author    Lucio Benini <info@pittica.com>
- * @copyright 2020 Pittica S.r.l.s.
+ * @copyright 2020-2021 Pittica S.r.l.
  * @license   http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link      https://github.com/pittica/prestashop-trovaprezzi
  */
 
+/**
+ * Download controller.
+ *
+ * @category Controller
+ * @package  Pittica/Trovaprezzi
+ * @author   Lucio Benini <info@pittica.com>
+ * @license  http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link     https://github.com/pittica/prestashop-trovaprezzi/blob/main/controllers/front/download.php
+ * @since    1.0.0
+ */
 class pitticatrovaprezzidownloadModuleFrontController extends ModuleFrontController
 {
+    /**
+     * {@inheritDoc}
+     *
+     * @return void
+     */
     public function initContent()
     {
         parent::initContent();

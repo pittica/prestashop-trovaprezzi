@@ -1,13 +1,16 @@
 <?php
 
 /**
- * prestashop-trovaprezzi
+ * PrestaShop Module - pitticatrovaprezzi
  *
- * Copyright 2020 Pittica S.r.l.s.
+ * Copyright 2020-2021 Pittica S.r.l.
  *
+ * @category  Module
+ * @package   Pittica/Trovaprezzi
  * @author    Lucio Benini <info@pittica.com>
- * @copyright 2020 Pittica S.r.l.s.
+ * @copyright 2020-2021 Pittica S.r.l.
  * @license   http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link      https://github.com/pittica/prestashop-trovaprezzi
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -16,8 +19,23 @@ if (!defined('_PS_VERSION_')) {
 
 require_once(dirname(__FILE__) . '/../../classes/TrovaprezziOffer.php');
 
+/**
+ * Trovaprezzi admin controller.
+ *
+ * @category Controller
+ * @package  Pittica/Trovaprezzi
+ * @author   Lucio Benini <info@pittica.com>
+ * @license  http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link     https://github.com/pittica/prestashop-trovaprezzi/blob/main/controllers/admin/AdminTrovaprezziController.php
+ * @since    1.0.0
+ */
 class AdminTrovaprezziController extends ModuleAdminController
 {
+    /**
+     * {@inheritDoc}
+     *
+     * @return void
+     */
     public function __construct()
     {
         $this->bootstrap = true;
@@ -26,7 +44,7 @@ class AdminTrovaprezziController extends ModuleAdminController
         $this->className = TrovaprezziOffer::class;
         $this->display = 'list';
         $this->actions = array('view');
-        $this->identifier = 'id_pitticatrovaprezzi_offer';
+        $this->identifier = 'id_pittica_trovaprezzi_offer';
         $this->actions_available = array('view');
 
         parent::__construct();
@@ -86,14 +104,42 @@ class AdminTrovaprezziController extends ModuleAdminController
             )
         );
 
-        $this->_select .= ' (CASE WHEN (a.image_1 IS NOT NULL AND a.image_1 != "") THEN 1 ELSE 0 END) AS has_image, (CASE WHEN (a.categories IS NOT NULL AND a.categories != "") THEN 1 ELSE 0 END) AS has_categories, (CASE WHEN ((a.part_number IS NOT NULL AND a.part_number != "") OR (a.ean_code IS NOT NULL AND a.ean_code != "")) THEN 1 ELSE 0 END) AS has_code ';
+        if (Shop::isFeatureActive()) {
+            if (Shop::getContextShopID() !== null) {
+                $this->_join .= ' INNER JOIN ' . _DB_PREFIX_ . 'shop AS shop ON a.id_shop = shop.id_shop AND shop.id_shop = ' . Shop::getContextShopID();
+            } else {
+                $this->_join .= ' LEFT JOIN ' . _DB_PREFIX_ . 'shop AS shop ON a.id_shop = shop.id_shop';
+
+                $this->fields_list['shop_name'] = array(
+                    'title' => $this->l('Shop'),
+                    'filter_key' => 'shop!name',
+                    'orderby' => true,
+                    'filter' => true,
+                    'search' => true,
+                );
+
+                $this->_select .= ' shop.name AS shop_name,';
+            }
+        }
+
+        $this->_select .= ' (CASE WHEN (a.image_1 IS NOT NULL AND a.image_1 != "") THEN 1 ELSE 0 END) AS has_image, (CASE WHEN (a.categories IS NOT NULL AND a.categories != "") THEN 1 ELSE 0 END) AS has_categories, (CASE WHEN ((a.part_number IS NOT NULL AND a.part_number != "") OR (a.ean_code IS NOT NULL AND a.ean_code != "")) THEN 1 ELSE 0 END) AS has_code';
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return void
+     */
     public function initToolBarTitle()
     {
         $this->toolbar_title[] = 'TrovaPrezzi';
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return void
+     */
     public function initToolbar()
     {
         switch ($this->display) {
@@ -144,6 +190,11 @@ class AdminTrovaprezziController extends ModuleAdminController
         $this->addToolBarModulesListButton();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return void
+     */
     public function initProcess()
     {
         parent::initProcess();

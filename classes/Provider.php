@@ -1,80 +1,148 @@
 <?php
 
 /**
- * prestashop-trovaprezzi
+ * PrestaShop Module - pitticatrovaprezzi
  *
- * Copyright 2020 Pittica S.r.l.s.
+ * Copyright 2020-2021 Pittica S.r.l.
  *
+ * @category  Module
+ * @package   Pittica/Trovaprezzi
  * @author    Lucio Benini <info@pittica.com>
- * @copyright 2020 Pittica S.r.l.s.
+ * @copyright 2020-2021 Pittica S.r.l.
  * @license   http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link      https://github.com/pittica/prestashop-trovaprezzi
  */
 
-require_once(dirname(__FILE__) . '/TrovaprezziOffer.php');
+require_once dirname(__FILE__) . '/TrovaprezziOffer.php';
 
+/**
+ * Base provider class.
+ *
+ * @category Provider
+ * @package  Pittica/Trovaprezzi
+ * @author   Lucio Benini <info@pittica.com>
+ * @license  http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link     https://github.com/pittica/prestashop-trovaprezzi/blob/main/classes/Provider.php
+ * @since    1.2.0
+ */
 abstract class Provider
 {
-	public static function getProvider($name)
-	{
-		$class = ucfirst($name) . 'Provider';
+    /**
+     * Gets the provider with the given name.
+     *
+     * @param string $name The provider's name.
+     * 
+     * @return Provider
+     */
+    public static function getProvider($name)
+    {
+        $class = ucfirst($name) . 'Provider';
 
-		require_once(dirname(__FILE__) . DIRECTORY_SEPARATOR . $class . '.php');
+        include_once dirname(__FILE__) . DIRECTORY_SEPARATOR . $class . '.php';
 
-		return new $class;
-	}
+        return new $class;
+    }
 
-	public static function getProviders()
-	{
-		return array(
-			'trovaprezzi',
-			'google'
-		);
-	}
+    /**
+     * Gets the available providers.
+     *
+     * @return array
+     */
+    public static function getProviders()
+    {
+        return array(
+            'trovaprezzi',
+            'google'
+        );
+    }
 
-	public abstract function getFilename();
+    /**
+     * Gets the filename.
+     * 
+     * @return string
+     * @since  1.2.0
+     */
+    public abstract function getFilename();
 
-	public abstract function getElementRoot();
+    /**
+     * Gets the element root name.
+     * 
+     * @return string
+     * @since  1.2.0
+     */
+    public abstract function getElementRoot();
 
-	public abstract function getElementItem();
+    /**
+     * Gets the element item name.
+     * 
+     * @return string
+     * @since  1.2.0
+     */
+    public abstract function getElementItem();
 
-	public function renderAttributes($xml)
-	{
-		return $xml;
-	}
+    public function renderAttributes($xml)
+    {
+        return $xml;
+    }
 
-	public abstract function renderItem($xml, $offer);
+    /**
+     * Renders an offer object.
+     * 
+     * @param XmlWriter        $xml   XML object.
+     * @param TrovaprezziOffer $offer Offer item.
+     * 
+     * @return XmlWriter
+     * @since  1.2.0
+     */
+    public abstract function renderItem($xml, $offer);
 
-	public function renderBody($xml)
-	{
-		$offers = TrovaprezziOffer::getOffers();
+    /**
+     * Renders the XML body.
+     * 
+     * @param XmlWriter $xml XML object.
+     * 
+     * @return XmlWriter
+     * @since  1.2.0
+     */
+    public function renderBody($xml)
+    {
+        $offers = TrovaprezziOffer::getOffers();
 
-		foreach ($offers as $offer) {
-			if ($offer->active) {
-				$xml->startElement($this->getElementItem());
+        foreach ($offers as $offer) {
+            if ($offer->active) {
+                $xml->startElement($this->getElementItem());
 
-				$this->renderItem($xml, $offer);
+                $this->renderItem($xml, $offer);
 
-				$xml->endElement();
-			}
-		}
+                $xml->endElement();
+            }
+        }
 
-		return $xml;
-	}
+        return $xml;
+    }
 
-	public function generate($path)
-	{
-		$xml = new XmlWriter();
-		$xml->openUri($path);
-		$xml->startDocument('1.0', 'UTF-8');
-		$xml->startElement($this->getElementRoot());
+    /**
+     * Writes the XML document.
+     * 
+     * @param string $path Document path.
+     * 
+     * @return boolean
+     * @since  1.2.0
+     */
+    public function generate($path)
+    {
+        $xml = new XmlWriter();
+        $xml->openUri($path);
+        $xml->startDocument('1.0', 'UTF-8');
+        $xml->startElement($this->getElementRoot());
 
-		$this->renderAttributes($xml);
-		$this->renderBody($xml);
+        $this->renderAttributes($xml);
+        $this->renderBody($xml);
 
-		$xml->endElement();
-		$xml->endDocument();
-		$xml->flush();
+        $xml->endElement();
+        $xml->endDocument();
+        $xml->flush();
 
-		return true;
-	}
+        return true;
+    }
 }

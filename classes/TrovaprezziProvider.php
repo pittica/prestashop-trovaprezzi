@@ -1,34 +1,74 @@
 <?php
 
 /**
- * prestashop-trovaprezzi
+ * PrestaShop Module - pitticatrovaprezzi
  *
- * Copyright 2020 Pittica S.r.l.s.
+ * Copyright 2020-2021 Pittica S.r.l.
  *
+ * @category  Module
+ * @package   Pittica/Trovaprezzi
  * @author    Lucio Benini <info@pittica.com>
- * @copyright 2020 Pittica S.r.l.s.
+ * @copyright 2020-2021 Pittica S.r.l.
  * @license   http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link      https://github.com/pittica/prestashop-trovaprezzi
  */
 
-require_once(dirname(__FILE__) . '/Provider.php');
+require_once dirname(__FILE__) . '/Provider.php';
 
+/**
+ * Trovaprezzi provider class.
+ *
+ * @category Provider
+ * @package  Pittica/Trovaprezzi
+ * @author   Lucio Benini <info@pittica.com>
+ * @license  http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link     https://github.com/pittica/prestashop-trovaprezzi/blob/main/classes/TrovaprezziProvider.php
+ * @since    1.2.0
+ */
 class TrovaprezziProvider extends Provider
 {
+    /**
+     * {@inheritDoc}
+     * 
+     * @return string
+     * @since  1.2.0
+     */
     public function getElementRoot()
     {
         return 'Products';
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @return string
+     * @since  1.2.0
+     */
     public function getElementItem()
     {
         return 'Offer';
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @return string
+     * @since  1.2.0
+     */
     public function getFilename()
     {
         return 'trovaprezzi';
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @param XmlWriter        $xml   XML object.
+     * @param TrovaprezziOffer $offer Offer item.
+     * 
+     * @return XmlWriter
+     * @since  1.2.0
+     */
     public function renderItem($xml, $offer)
     {
         $xml->writeElement('Name', $offer->name);

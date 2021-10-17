@@ -1,17 +1,30 @@
 <?php
 
 /**
- * prestashop-trovaprezzi
+ * PrestaShop Module - pitticatrovaprezzi
  *
- * Copyright 2020 Pittica S.r.l.s.
+ * Copyright 2020-2021 Pittica S.r.l.
  *
+ * @category  Module
+ * @package   Pittica/Trovaprezzi
  * @author    Lucio Benini <info@pittica.com>
- * @copyright 2020 Pittica S.r.l.s.
+ * @copyright 2020-2021 Pittica S.r.l.
  * @license   http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link      https://github.com/pittica/prestashop-trovaprezzi
  */
 
 require_once(dirname(__FILE__) . '/Provider.php');
 
+/**
+ * Google provider class.
+ *
+ * @category Provider
+ * @package  Pittica/Trovaprezzi
+ * @author   Lucio Benini <info@pittica.com>
+ * @license  http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link     https://github.com/pittica/prestashop-trovaprezzi/blob/main/classes/GoogleProvider.php
+ * @since    1.2.0
+ */
 class GoogleProvider extends Provider
 {
     protected $country;
@@ -19,6 +32,11 @@ class GoogleProvider extends Provider
     protected $carrier;
     protected $locale;
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @since 1.2.0
+     */
     public function __construct()
     {
         $this->country = Country::getIsoById((int)Configuration::get('PS_COUNTRY_DEFAULT'));
@@ -27,16 +45,34 @@ class GoogleProvider extends Provider
         $this->locale = Tools::getContextLocale($this->context);
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @return string
+     * @since  1.2.0
+     */
     public function getElementRoot()
     {
         return 'rss';
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @return string
+     * @since  1.2.0
+     */
     public function getElementItem()
     {
         return 'item';
     }
 
+    /**
+     * {@inheritDoc}
+     * 
+     * @return string
+     * @since  1.2.0
+     */
     public function getFilename()
     {
         return 'google';

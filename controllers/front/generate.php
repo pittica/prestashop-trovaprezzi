@@ -35,7 +35,9 @@ class pitticatrovaprezzigenerateModuleFrontController extends ModuleFrontControl
         parent::initContent();
 
         if (Tools::getValue('token') === $this->module->getToken()) {
-            $this->module->generate((int)Tools::getValue('refresh', true), Tools::getValue('provider'));
+            $shop = (int) Tools::getValue('id_shop');
+
+            $this->module->generate((int)Tools::getValue('refresh', true), Tools::getValue('provider'), $shop > 0 ? $shop : null);
         }
 
         die();

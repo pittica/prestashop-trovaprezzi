@@ -103,6 +103,17 @@ class AdminTrovaprezziController extends ModuleAdminController
                 'class' => 'fixed-width-sm',
             )
         );
+        
+        $this->bulk_actions = array(
+            'enableSelection' => array(
+                'text' => $this->trans('Enable selection', array(), 'Admin.Actions'),
+                'icon' => 'icon-power-off text-success',
+            ),
+            'disableSelection' => array(
+                'text' => $this->trans('Disable selection', array(), 'Admin.Actions'),
+                'icon' => 'icon-power-off text-danger',
+            ),
+        );
 
         if (Shop::isFeatureActive()) {
             if (Shop::getContextShopID() !== null) {
@@ -185,6 +196,8 @@ class AdminTrovaprezziController extends ModuleAdminController
                         'desc' => $this->l('Export'),
                     );
                 }
+
+                break;
         }
 
         $this->addToolBarModulesListButton();
@@ -212,7 +225,8 @@ class AdminTrovaprezziController extends ModuleAdminController
         }
 
         if (Tools::getIsset('view' . $this->table)) {
-            $this->object = new TrovaprezziOffer((int)Tools::getValue('id_pitticatrovaprezzi_offer'));
+            $this->object = new TrovaprezziOffer((int) Tools::getValue('id_pittica_trovaprezzi_offer'));
+            
             Tools::redirectAdmin($this->context->link->getAdminLink('AdminProducts', true, array('id_product' => $this->object->id_product)));
         }
     }

@@ -20,6 +20,8 @@ if (!defined('_PS_VERSION_')) {
 require_once dirname(__FILE__) . '/classes/TrovaprezziOffer.php';
 require_once dirname(__FILE__) . '/classes/Provider.php';
 
+use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
+
 /**
  * Trovaprezzi module class.
  *
@@ -41,7 +43,7 @@ class PitticaTrovaprezzi extends Module
     {
         $this->name          = 'pitticatrovaprezzi';
         $this->tab           = 'front_office_features';
-        $this->version       = '1.3.0';
+        $this->version       = '1.3.1';
         $this->author        = 'Pittica';
         $this->need_instance = 1;
         $this->bootstrap     = 1;
@@ -178,13 +180,13 @@ class PitticaTrovaprezzi extends Module
         $check    = $this->context->link->getAdminLink('AdminTrovaprezzi');
 
         $helper->fields_value = array(
-            'generate' => $this->getGenerateFeedHtml(null),
-            'feed_trovaprezzi' => $this->getViewFeedHtml('trovaprezzi'),
+            'generate'             => $this->getGenerateFeedHtml(null),
+            'feed_trovaprezzi'     => $this->getViewFeedHtml('trovaprezzi'),
             'generate_trovaprezzi' => $this->getGenerateFeedHtml('trovaprezzi'),
-            'feed_google' => $this->getViewFeedHtml('google'),
-            'generate_google' => $this->getGenerateFeedHtml('google'),
-            'carrier' => Configuration::get('PITTICA_TROVAPREZZI_CARRIER'),
-            'check' => '<a href="' . $check . '">' . $this->l('Check non-compliant products.') . '</a>'
+            'feed_google'          => $this->getViewFeedHtml('google'),
+            'generate_google'      => $this->getGenerateFeedHtml('google'),
+            'carrier'              => Configuration::get('PITTICA_TROVAPREZZI_CARRIER'),
+            'check'                => '<a href="' . $check . '">' . $this->l('Check non-compliant products.') . '</a>'
         );
 
         return $helper->generateForm(
@@ -196,19 +198,19 @@ class PitticaTrovaprezzi extends Module
                         ),
                         'input' => array(
                             array(
-                                'type' => 'select',
+                                'type'  => 'select',
                                 'label' => $this->l('Carrier:'),
-                                'name' => 'carrier',
+                                'name'  => 'carrier',
                                 'options' => array(
                                     'query' => $carriers,
-                                    'id' => 'id_carrier',
-                                    'name' => 'name'
+                                    'id'    => 'id_carrier',
+                                    'name'  => 'name'
                                 )
                             ),
                             array(
-                                'type' => 'free',
+                                'type'  => 'free',
                                 'label' => $this->l('Check Products'),
-                                'name' => 'check'
+                                'name'  => 'check'
                             )
                         ),
                         'submit' => array(
@@ -223,9 +225,9 @@ class PitticaTrovaprezzi extends Module
                         ),
                         'input' => array(
                             array(
-                                'type' => 'free',
+                                'type'  => 'free',
                                 'label' => $this->l('Generator URL'),
-                                'name' => 'generate'
+                                'name'  => 'generate'
                             )
                         ),
                         'submit' => array(
@@ -240,14 +242,14 @@ class PitticaTrovaprezzi extends Module
                         ),
                         'input' => array(
                             array(
-                                'type' => 'free',
+                                'type'  => 'free',
                                 'label' => $this->l('Feed URL'),
-                                'name' => 'feed_trovaprezzi'
+                                'name'  => 'feed_trovaprezzi'
                             ),
                             array(
-                                'type' => 'free',
+                                'type'  => 'free',
                                 'label' => $this->l('Generator URL'),
-                                'name' => 'generate_trovaprezzi'
+                                'name'  => 'generate_trovaprezzi'
                             )
                         ),
                         'submit' => array(
@@ -262,14 +264,14 @@ class PitticaTrovaprezzi extends Module
                         ),
                         'input' => array(
                             array(
-                                'type' => 'free',
+                                'type'  => 'free',
                                 'label' => $this->l('Feed URL'),
-                                'name' => 'feed_google'
+                                'name'  => 'feed_google'
                             ),
                             array(
-                                'type' => 'free',
+                                'type'  => 'free',
                                 'label' => $this->l('Generator URL'),
-                                'name' => 'generate_google'
+                                'name'  => 'generate_google'
                             )
                         ),
                         'submit' => array(
@@ -349,23 +351,10 @@ class PitticaTrovaprezzi extends Module
                 if (!empty($attributes)) {
                     foreach ($attributes as $attribute) {
                         if ((int) $attribute['quantity'] > 0) {
-                            $cart    = $this->getCart($currency, $carrier, $lang);
-                            $images  = array();
+                            $cart    = $this->getCart($currency, $carrier, $lang, $shop);
                             $minimal = (!empty($attribute['minimal_quantity']) && $attribute['minimal_quantity'] > 0) ? (int) $attribute['minimal_quantity'] : 1;
 
-                            foreach (Image::getImages($lang, $product->id, (int) $attribute['id_product_attribute'], $shop) as $image) {
-                                $images[] = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), $image['id_image']);
-                            }
-
                             $cart->updateQty($minimal, $product->id, (int) $attribute['id_product_attribute']);
-
-                            $cover = Image::getGlobalCover($product->id);
-
-                            if (!empty($cover)) {
-                                $cover = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), (int) $cover['id_image']);
-                            } else {
-                                $cover = '';
-                            }
 
                             $ean = empty($attribute['ean13']) ? $product->ean13 : $attribute['ean13'];
 
@@ -378,17 +367,17 @@ class PitticaTrovaprezzi extends Module
                             $offer->description          = $this->clearDescription($product, $lang);
                             $offer->original_price       = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, false, $minimal);
                             $offer->price                = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, true, $minimal);
-                            $offer->link                 = $this->context->link->getProductLink($product, null, $cat, null, null, null, (int) $attribute['id_product_attribute']);
+                            $offer->link                 = $this->context->link->getProductLink($product, null, $cat, null, null, $shop, (int) $attribute['id_product_attribute']);
                             $offer->stock                = (int) $attribute['quantity'];
                             $offer->categories           = implode(', ', $categories);
-                            $offer->image_1              = !empty($images[0]) ? $images[0] : $cover;
-                            $offer->image_2              = !empty($images[1]) ? $images[1] : '';
-                            $offer->image_3              = !empty($images[2]) ? $images[2] : '';
                             $offer->shipping_cost        = $cart->getPackageShippingCost($carrier, true, $country);
                             $offer->part_number          = empty($attribute['reference']) ? $ean : $attribute['reference'];
                             $offer->ean_code             = $ean;
                             $offer->weight               = (float) $attribute['weight'] + (float) $product->weight;
                             $offer->active               = $product->active;
+
+                            $this->populateImages($offer, $product, $lang, $shop);
+
                             $offer->add();
 
                             $cart->delete();
@@ -396,13 +385,8 @@ class PitticaTrovaprezzi extends Module
                     }
                 } else {
                     if ((int) $product->quantity) {
-                        $images  = array();
-                        $cart    = $this->getCart($currency, $carrier, $lang);
+                        $cart    = $this->getCart($currency, $carrier, $lang, $shop);
                         $minimal = $product->minimal_quantity > 0 ? (int) $product->minimal_quantity : 1;
-
-                        foreach (Image::getImages($lang, $product->id) as $image) {
-                            $images[] = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), $image['id_image']);
-                        }
 
                         $cart->updateQty($minimal, $product->id);
 
@@ -414,16 +398,17 @@ class PitticaTrovaprezzi extends Module
                         $offer->description    = $this->clearDescription($product, $lang);
                         $offer->original_price = $product->getPrice(true, null, 2, null, false, false, $minimal);
                         $offer->price          = $product->getPrice(true, null, 2, null, false, true, $minimal);
-                        $offer->link           = $this->context->link->getProductLink($product, null, $cat);
+                        $offer->link           = $this->context->link->getProductLink($product, null, $cat, null, null, $shop);
                         $offer->stock          = (int) $product->quantity;
                         $offer->categories     = implode(', ', $categories);
-                        $offer->image_1        = !empty($images[0]) ? $images[0] : '';
-                        $offer->image_2        = !empty($images[1]) ? $images[1] : '';
-                        $offer->image_3        = !empty($images[2]) ? $images[2] : '';
                         $offer->shipping_cost  = $cart->getPackageShippingCost($carrier, true, $country);
                         $offer->part_number    = empty($product->reference) ? $product->ean13 : $product->reference;
                         $offer->ean_code       = $product->ean13;
                         $offer->weight         = (float) $product->weight;
+                        $offer->active         = $product->active;
+
+                        $this->populateImages($offer, $product, $lang, $shop);
+
                         $offer->add();
 
                         $cart->delete();
@@ -459,11 +444,55 @@ class PitticaTrovaprezzi extends Module
             $object = Provider::getProvider($p);
 
             foreach ($shops as $shop) {
-                $object->generate($this->getFilePath($p, $shop));
+                $object->generate($this->getFilePath($p, $shop), $shop);
             }
         }
 
         return true;
+    }
+
+    /**
+     * Populates the images of the given offer.
+     *
+     * @param TrovaprezziOffer $offer   Offer object.
+     * @param Product          $product Product object.
+     * @param int              $lang    Language ID.
+     * @param int              $shop    Shop ID.
+     *
+     * @return TrovaprezziOffer
+     */
+    protected function populateImages($offer, $product, $lang, $shop)
+    {
+        $retriever = new ImageRetriever($this->context->link);
+        $empty     = $retriever->getNoPictureImage(new Language($lang));
+        $empty     = !empty($img['large']['url']) ? $img['large']['url'] : '';
+
+        $images  = array();
+
+        foreach (Image::getImages($lang, $product->id, $offer->id_product_attribute ? $offer->id_product_attribute : null, $shop) as $image) {
+            $img = $retriever->getImage($product, $image['id_image']);
+
+            if (!empty($img['large']['url'])) {
+                $images[] = $img['large']['url'];
+            }
+        }
+
+        $offer->image_2 = !empty($images[1]) ? $images[1] : $empty;
+        $offer->image_3 = !empty($images[2]) ? $images[2] : $empty;
+
+        if (!empty($images[0])) {
+            $offer->image_1 = $images[0];
+        } else {
+            $cover = Image::getGlobalCover($product->id);
+
+            if (!empty($cover)) {
+                $offer->image_1 = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), (int) $cover['id_image']);
+            } else {
+                $offer->image_1 = $empty;
+            }
+        }
+
+        return $offer;
     }
 
     /**
@@ -472,16 +501,17 @@ class PitticaTrovaprezzi extends Module
      * @param int $currency Currency ID.
      * @param int $carrier  Carrier ID.
      * @param int $lang     Language ID.
+     * @param int $shop     Shop ID.
      *
      * @return Cart
      */
-    protected function getCart($currency, $carrier, $lang)
+    protected function getCart($currency, $carrier, $lang, $shop)
     {
         $cart              = new Cart(0);
         $cart->id_currency = $currency;
         $cart->id_lang     = $lang;
         $cart->id_carrier  = $carrier;
-        $cart->save();
+        $cart->id_shop     = $shop;
 
         return $cart;
     }
@@ -525,10 +555,14 @@ class PitticaTrovaprezzi extends Module
      */
     protected function getGenerateFeedHtml($provider)
     {
-        $url = $this->context->link->getModuleLink($this->name, 'generate', array(
-            'provider' => $provider,
-            'token' => $this->getToken()
-        ));
+        $url = $this->context->link->getModuleLink(
+            $this->name,
+            'generate',
+            array(
+                'provider' => $provider,
+                'token'    => $this->getToken()
+            )
+        );
 
         return $this->l('Use this link to generate the XML Feed:') . '<br/><a href="' . $url . '" target="_system">' . $url . '</a>';
     }
@@ -542,10 +576,14 @@ class PitticaTrovaprezzi extends Module
      */
     protected function getViewFeedHtml($provider)
     {
-        $url = $this->context->link->getModuleLink($this->name, 'download', array(
-            'provider' => $provider,
-            'token' => $this->getToken()
-        ));
+        $url = $this->context->link->getModuleLink(
+            $this->name,
+            'download',
+            array(
+                'provider' => $provider,
+                'token'    => $this->getToken()
+            )
+        );
 
         return $this->l('XML Feed URL:') . '<br/><a href="' . $url . '" target="_system">' . $url . '</a>';
     }

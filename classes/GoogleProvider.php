@@ -34,7 +34,7 @@ class GoogleProvider extends Provider
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @since 1.2.0
      */
     public function __construct()
@@ -47,7 +47,7 @@ class GoogleProvider extends Provider
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @return string
      * @since  1.2.0
      */
@@ -58,7 +58,7 @@ class GoogleProvider extends Provider
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @return string
      * @since  1.2.0
      */
@@ -69,7 +69,7 @@ class GoogleProvider extends Provider
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @return string
      * @since  1.2.0
      */
@@ -78,6 +78,14 @@ class GoogleProvider extends Provider
         return 'google';
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @param XmlWriter $xml XML object.
+     *
+     * @return XmlWriter
+     * @since  1.2.0
+     */
     public function renderAttributes($xml)
     {
         $xml->writeAttribute('version', '2.0');
@@ -86,11 +94,20 @@ class GoogleProvider extends Provider
         return $xml;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @param XmlWriter        $xml   XML object.
+     * @param TrovaprezziOffer $offer Offer item.
+     *
+     * @return XmlWriter
+     * @since  1.2.0
+     */
     public function renderItem($xml, $offer)
     {
-        $xml->writeElement('title',  $offer->name);
-        $xml->writeElement('description',  !empty($offer->description) ? $offer->description : $offer->name);
-        $xml->writeElement('link',  $offer->link);
+        $xml->writeElement('title', $offer->name);
+        $xml->writeElement('description', !empty($offer->description) ? $offer->description : $offer->name);
+        $xml->writeElement('link', $offer->link);
         $xml->writeElement('g:id', $offer->id_product . ($offer->id_product_attribute ? ('-' . $offer->id_product_attribute) : ''));
         $xml->writeElement('g:image_link', $offer->image_1);
         $xml->writeElement('g:price', $this->locale->formatPrice($offer->original_price, $this->context->currency->iso_code));
@@ -119,17 +136,26 @@ class GoogleProvider extends Provider
         return $xml;
     }
 
-    public function renderBody($xml)
+    /**
+     * {@inheritDoc}
+     *
+     * @param XmlWriter $xml  XML object.
+     * @param int|null  $shop Shop ID.
+     *
+     * @return XmlWriter
+     * @since  1.2.0
+     */
+    public function renderBody($xml, $shop = null)
     {
         $xml->startElement('channel');
 
         $meta = Meta::getHomeMetas((int)Configuration::get('PS_LANG_DEFAULT'), 'index');
 
         $xml->writeElement('title', Configuration::get('PS_SHOP_NAME'));
-        $xml->writeElement('link', $this->context->link->getBaseLink());
+        $xml->writeElement('link', $this->context->link->getBaseLink($shop));
         $xml->writeElement('description', $meta['meta_description']);
 
-        $offers = TrovaprezziOffer::getOffers();
+        $offers = TrovaprezziOffer::getOffers($shop);
 
         foreach ($offers as $offer) {
             if ($offer->active) {

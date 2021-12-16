@@ -13,6 +13,16 @@
  * @link      https://github.com/pittica/prestashop-trovaprezzi
  */
 
+/**
+ * Trovaprezzi offer class.
+ *
+ * @category Object
+ * @package  Pittica/Trovaprezzi
+ * @author   Lucio Benini <info@pittica.com>
+ * @license  http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
+ * @link     https://github.com/pittica/prestashop-trovaprezzi/blob/main/pitticatrovaprezzi.php
+ * @since    1.0.0
+ */
 class TrovaprezziOffer extends ObjectModel
 {
     const TABLE_NAME = 'pittica_trovaprezzi_offer';
@@ -102,9 +112,23 @@ class TrovaprezziOffer extends ObjectModel
         )
     );
 
-    public static function getOffers()
+    /**
+     * Gets the offers.
+     *
+     * @param int|null $shop Shop ID.
+     *
+     * @return array
+     * @since  1.0.0
+     */
+    public static function getOffers($shop = null)
     {
-        $result = Db::getInstance()->executeS('SELECT o.id_pittica_trovaprezzi_offer FROM `' . _DB_PREFIX_ . self::TABLE_NAME . '` o');
+        $query = 'SELECT o.id_pittica_trovaprezzi_offer FROM `' . _DB_PREFIX_ . self::TABLE_NAME . '` o';
+
+        if ($shop) {
+            $query .= ' WHERE o.id_shop = ' . pSQL((int) $shop);
+        }
+
+        $result = Db::getInstance()->executeS($query);
         $offers = array();
 
         foreach ($result as $row) {
@@ -114,6 +138,11 @@ class TrovaprezziOffer extends ObjectModel
         return $offers;
     }
 
+    /**
+     * Truncates the table.
+     *
+     * @return boolean
+     */
     public static function truncate()
     {
         return Db::getInstance()->execute('TRUNCATE `' . _DB_PREFIX_ . self::TABLE_NAME . '`');

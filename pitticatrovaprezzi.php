@@ -327,6 +327,7 @@ class PitticaTrovaprezzi extends Module
         $home     = (int) Configuration::get('PS_HOME_CATEGORY');
         $currency = (int) Configuration::get('PS_CURRENCY_DEFAULT');
         $carrier  = (int) Configuration::get('PITTICA_TROVAPREZZI_CARRIER');
+        $group    = (int) Configuration::get('PS_GUEST_GROUP');
         $country  = new Country((int) Configuration::get('PS_COUNTRY_DEFAULT'));
         $products = Product::getProducts($lang, 0, 0, 'id_product', 'ASC', false, true);
         $shops    = $id_shop === null ? Shop::getShops(true, null, true) : array($id_shop);
@@ -365,8 +366,10 @@ class PitticaTrovaprezzi extends Module
                             $offer->name                 = (is_array($product->name) ? $product->name[$lang] : $product->name) . ' - ' . $attribute['attribute_designation'];
                             $offer->brand                = $product->manufacturer_name;
                             $offer->description          = $this->clearDescription($product, $lang);
-                            $offer->original_price       = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, false, $minimal);
-                            $offer->price                = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, true, $minimal);
+                            $offer->original_price       = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, (int) $attribute['id_product_attribute'], false);
+                            $offer->price                = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, (int) $attribute['id_product_attribute'], true);
+                            // $offer->original_price       = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, false, $minimal);
+                            // $offer->price                = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, true, $minimal);
                             $offer->link                 = $this->context->link->getProductLink($product, null, $cat, null, null, $shop, (int) $attribute['id_product_attribute']);
                             $offer->stock                = (int) $attribute['quantity'];
                             $offer->categories           = implode(', ', $categories);
@@ -396,8 +399,10 @@ class PitticaTrovaprezzi extends Module
                         $offer->name           = is_array($product->name) ? $product->name[$lang] : $product->name;
                         $offer->brand          = $product->manufacturer_name;
                         $offer->description    = $this->clearDescription($product, $lang);
-                        $offer->original_price = $product->getPrice(true, null, 2, null, false, false, $minimal);
-                        $offer->price          = $product->getPrice(true, null, 2, null, false, true, $minimal);
+                        $offer->original_price = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, null, false);
+                        $offer->price          = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, null, true);
+                        //$offer->original_price = $product->getPrice(true, null, 2, null, false, false, $minimal);
+                        //$offer->price          = $product->getPrice(true, null, 2, null, false, true, $minimal);
                         $offer->link           = $this->context->link->getProductLink($product, null, $cat, null, null, $shop);
                         $offer->stock          = (int) $product->quantity;
                         $offer->categories     = implode(', ', $categories);
@@ -452,6 +457,51 @@ class PitticaTrovaprezzi extends Module
     }
 
     /**
+     * Calculates the price.
+     *
+     * @param int      $shop      Shop ID.
+     * @param int      $currency  Currency ID.
+     * @param int      $quantity  Quantity ID.
+     * @param int      $country   Country ID.
+     * @param int      $group     Group ID.
+     * @param int      $product   Product ID.
+     * @param int|null $attribute Attribute ID.
+     * @param boolean  $reduction A value indicating whether use reductions.
+     *
+     * @return float
+     * @since  1.3.1
+     */
+    protected function calculatePrice($shop, $currency, $quantity, $country, $group, $product, $attribute = null, $reduction = true)
+    {
+        $price = null;
+
+        $result = Product::priceCalculation(
+            $shop,
+            $product,
+            $attribute,
+            $country,
+            0,
+            0,
+            $currency,
+            $group,
+            $quantity,
+            true,
+            7,
+            false,
+            $reduction,
+            true,
+            $price,
+            true,
+            0,
+            true,
+            0,
+            $quantity
+        );
+
+        return Tools::ps_round($result, 2);
+    }
+
+    /**
      * Populates the images of the given offer.
      *
      * @param TrovaprezziOffer $offer   Offer object.
@@ -460,6 +510,7 @@ class PitticaTrovaprezzi extends Module
      * @param int              $shop    Shop ID.
      *
      * @return TrovaprezziOffer
+     * @since  1.3.1
      */
     protected function populateImages($offer, $product, $lang, $shop)
     {

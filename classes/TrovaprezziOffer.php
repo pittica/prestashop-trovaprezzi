@@ -238,6 +238,7 @@ class TrovaprezziOffer extends ObjectModel
     {
         $this->original_price = $this->calculatePrice($shop, $currency, $quantity, $country, $group, $product, $attribute, false);
         $this->price          = $this->calculatePrice($shop, $currency, $quantity, $country, $group, $product, $attribute, true);
+        $this->active         = $this->price > 0 ? 1 : 0;
 
         return $this;
     }

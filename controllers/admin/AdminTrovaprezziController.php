@@ -35,6 +35,7 @@ class AdminTrovaprezziController extends ModuleAdminController
      * {@inheritDoc}
      *
      * @return void
+     * @since  1.0.0
      */
     public function __construct()
     {
@@ -140,6 +141,7 @@ class AdminTrovaprezziController extends ModuleAdminController
      * {@inheritDoc}
      *
      * @return void
+     * @since  1.0.0
      */
     public function initToolBarTitle()
     {
@@ -150,6 +152,7 @@ class AdminTrovaprezziController extends ModuleAdminController
      * {@inheritDoc}
      *
      * @return void
+     * @since  1.0.0
      */
     public function initToolbar()
     {
@@ -207,6 +210,7 @@ class AdminTrovaprezziController extends ModuleAdminController
      * {@inheritDoc}
      *
      * @return void
+     * @since  1.0.0
      */
     public function initProcess()
     {

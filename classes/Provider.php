@@ -33,6 +33,7 @@ abstract class Provider
      * @param string $name The provider's name.
      *
      * @return Provider
+     * @since  1.2.0
      */
     public static function getProvider($name)
     {
@@ -47,6 +48,7 @@ abstract class Provider
      * Gets the available providers.
      *
      * @return array
+     * @since  1.2.0
      */
     public static function getProviders()
     {

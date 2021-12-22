@@ -29,6 +29,7 @@ class pitticatrovaprezzidownloadModuleFrontController extends ModuleFrontControl
      * {@inheritDoc}
      *
      * @return void
+     * @since  1.0.0
      */
     public function initContent()
     {

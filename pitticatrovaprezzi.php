@@ -20,8 +20,6 @@ if (!defined('_PS_VERSION_')) {
 require_once dirname(__FILE__) . '/classes/TrovaprezziOffer.php';
 require_once dirname(__FILE__) . '/classes/Provider.php';
 
-use PrestaShop\PrestaShop\Adapter\Image\ImageRetriever;
-
 /**
  * Trovaprezzi module class.
  *
@@ -43,7 +41,7 @@ class PitticaTrovaprezzi extends Module
     {
         $this->name          = 'pitticatrovaprezzi';
         $this->tab           = 'front_office_features';
-        $this->version       = '1.3.1';
+        $this->version       = '1.3.2';
         $this->author        = 'Pittica';
         $this->need_instance = 1;
         $this->bootstrap     = 1;
@@ -283,6 +281,14 @@ class PitticaTrovaprezzi extends Module
         );
     }
 
+    /**
+     * Handles the displayFooterAfter hook.
+     *
+     * @param array $params Hook parameters.
+     *
+     * @return mixed
+     * @since  1.0.0
+     */
     public function hookDisplayFooterAfter($params)
     {
         return $this->display(__FILE__, 'displayFooterAfter.tpl');
@@ -295,6 +301,7 @@ class PitticaTrovaprezzi extends Module
      * @param int    $id_shop Shop ID.
      *
      * @return string
+     * @since  1.0.0
      */
     public function getFilePath($file = 'trovaprezzi', $id_shop = null)
     {
@@ -305,6 +312,7 @@ class PitticaTrovaprezzi extends Module
      * Generates the secuirty token.
      *
      * @return string
+     * @since  1.0.0
      */
     public function getToken()
     {
@@ -317,6 +325,7 @@ class PitticaTrovaprezzi extends Module
      * @param int $id_shop Shop ID.
      *
      * @return void
+     * @since  1.0.0
      */
     public function updateProducts($id_shop = null)
     {
@@ -352,71 +361,48 @@ class PitticaTrovaprezzi extends Module
                 if (!empty($attributes)) {
                     foreach ($attributes as $attribute) {
                         if ((int) $attribute['quantity'] > 0) {
-                            $cart    = $this->getCart($currency, $carrier, $lang, $shop);
                             $minimal = (!empty($attribute['minimal_quantity']) && $attribute['minimal_quantity'] > 0) ? (int) $attribute['minimal_quantity'] : 1;
 
-                            $cart->updateQty($minimal, $product->id, (int) $attribute['id_product_attribute']);
+                            $ean   = empty($attribute['ean13']) ? $product->ean13 : $attribute['ean13'];
+                            $offer = TrovaprezziOffer::fromProduct($product, $shop, $lang);
 
-                            $ean = empty($attribute['ean13']) ? $product->ean13 : $attribute['ean13'];
+                            $offer->updatePrices($shop, $currency, $minimal, $country->id, $group, $product->id, (int) $attribute['id_product_attribute']);
 
-                            $offer                       = new TrovaprezziOffer();
-                            $offer->id_product           = $product->id;
                             $offer->id_product_attribute = (int) $attribute['id_product_attribute'];
-                            $offer->id_shop              = $shop;
                             $offer->name                 = (is_array($product->name) ? $product->name[$lang] : $product->name) . ' - ' . $attribute['attribute_designation'];
-                            $offer->brand                = $product->manufacturer_name;
-                            $offer->description          = $this->clearDescription($product, $lang);
-                            $offer->original_price       = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, (int) $attribute['id_product_attribute'], false);
-                            $offer->price                = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, (int) $attribute['id_product_attribute'], true);
-                            // $offer->original_price       = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, false, $minimal);
-                            // $offer->price                = $product->getPrice(true, (int) $attribute['id_product_attribute'], 2, null, false, true, $minimal);
                             $offer->link                 = $this->context->link->getProductLink($product, null, $cat, null, null, $shop, (int) $attribute['id_product_attribute']);
                             $offer->stock                = (int) $attribute['quantity'];
                             $offer->categories           = implode(', ', $categories);
-                            $offer->shipping_cost        = $cart->getPackageShippingCost($carrier, true, $country);
+                            $offer->weight               = (float) $attribute['weight'] + (float) $product->weight;
                             $offer->part_number          = empty($attribute['reference']) ? $ean : $attribute['reference'];
                             $offer->ean_code             = $ean;
-                            $offer->weight               = (float) $attribute['weight'] + (float) $product->weight;
-                            $offer->active               = $product->active;
 
-                            $this->populateImages($offer, $product, $lang, $shop);
+                            $offer->updateShippingCost($shop, $currency, $carrier, $country, $lang, $minimal, $product, (int) $attribute['id_product_attribute']);
+                            $offer->populateImages($this->context, $product, $lang, $shop);
 
                             $offer->add();
-
-                            $cart->delete();
                         }
                     }
                 } else {
                     if ((int) $product->quantity) {
-                        $cart    = $this->getCart($currency, $carrier, $lang, $shop);
                         $minimal = $product->minimal_quantity > 0 ? (int) $product->minimal_quantity : 1;
 
-                        $cart->updateQty($minimal, $product->id);
+                        $offer = TrovaprezziOffer::fromProduct($product, $shop, $lang);
 
-                        $offer                 = new TrovaprezziOffer();
-                        $offer->id_product     = $product->id;
-                        $offer->id_shop        = $shop;
-                        $offer->name           = is_array($product->name) ? $product->name[$lang] : $product->name;
-                        $offer->brand          = $product->manufacturer_name;
-                        $offer->description    = $this->clearDescription($product, $lang);
-                        $offer->original_price = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, null, false);
-                        $offer->price          = $this->calculatePrice($shop, $currency, $minimal, $country->id, $group, $product->id, null, true);
-                        //$offer->original_price = $product->getPrice(true, null, 2, null, false, false, $minimal);
-                        //$offer->price          = $product->getPrice(true, null, 2, null, false, true, $minimal);
-                        $offer->link           = $this->context->link->getProductLink($product, null, $cat, null, null, $shop);
-                        $offer->stock          = (int) $product->quantity;
-                        $offer->categories     = implode(', ', $categories);
-                        $offer->shipping_cost  = $cart->getPackageShippingCost($carrier, true, $country);
-                        $offer->part_number    = empty($product->reference) ? $product->ean13 : $product->reference;
-                        $offer->ean_code       = $product->ean13;
-                        $offer->weight         = (float) $product->weight;
-                        $offer->active         = $product->active;
+                        $offer->updatePrices($shop, $currency, $minimal, $country->id, $group, $product->id);
 
-                        $this->populateImages($offer, $product, $lang, $shop);
+                        $offer->name        = is_array($product->name) ? $product->name[$lang] : $product->name;
+                        $offer->link        = $this->context->link->getProductLink($product, null, $cat, null, null, $shop);
+                        $offer->stock       = (int) $product->quantity;
+                        $offer->categories  = implode(', ', $categories);
+                        $offer->weight      = (float) $product->weight;
+                        $offer->part_number = empty($product->reference) ? $product->ean13 : $product->reference;
+                        $offer->ean_code    = $product->ean13;
+
+                        $offer->updateShippingCost($shop, $currency, $carrier, $country, $lang, $minimal, $product);
+                        $offer->populateImages($this->context, $product, $lang, $shop);
 
                         $offer->add();
-
-                        $cart->delete();
                     }
                 }
             }
@@ -431,6 +417,7 @@ class PitticaTrovaprezzi extends Module
      * @param int      $id_shop  Shop ID.
      *
      * @return boolean Returns "True" whether the XML file has been generated; otherwise, "False".
+     * @since  1.0.0
      */
     public function generate($refresh = true, $provider = null, $id_shop = null)
     {
@@ -457,152 +444,12 @@ class PitticaTrovaprezzi extends Module
     }
 
     /**
-     * Calculates the price.
-     *
-     * @param int      $shop      Shop ID.
-     * @param int      $currency  Currency ID.
-     * @param int      $quantity  Quantity ID.
-     * @param int      $country   Country ID.
-     * @param int      $group     Group ID.
-     * @param int      $product   Product ID.
-     * @param int|null $attribute Attribute ID.
-     * @param boolean  $reduction A value indicating whether use reductions.
-     *
-     * @return float
-     * @since  1.3.1
-     */
-    protected function calculatePrice($shop, $currency, $quantity, $country, $group, $product, $attribute = null, $reduction = true)
-    {
-        $price = null;
-
-        $result = Product::priceCalculation(
-            $shop,
-            $product,
-            $attribute,
-            $country,
-            0,
-            0,
-            $currency,
-            $group,
-            $quantity,
-            true,
-            7,
-            false,
-            $reduction,
-            true,
-            $price,
-            true,
-            0,
-            true,
-            0,
-            $quantity
-        );
-
-        return Tools::ps_round($result, 2);
-    }
-
-    /**
-     * Populates the images of the given offer.
-     *
-     * @param TrovaprezziOffer $offer   Offer object.
-     * @param Product          $product Product object.
-     * @param int              $lang    Language ID.
-     * @param int              $shop    Shop ID.
-     *
-     * @return TrovaprezziOffer
-     * @since  1.3.1
-     */
-    protected function populateImages($offer, $product, $lang, $shop)
-    {
-        $retriever = new ImageRetriever($this->context->link);
-        $empty     = $retriever->getNoPictureImage(new Language($lang));
-        $empty     = !empty($img['large']['url']) ? $img['large']['url'] : '';
-
-        $images  = array();
-
-        foreach (Image::getImages($lang, $product->id, $offer->id_product_attribute ? $offer->id_product_attribute : null, $shop) as $image) {
-            $img = $retriever->getImage($product, $image['id_image']);
-
-            if (!empty($img['large']['url'])) {
-                $images[] = $img['large']['url'];
-            }
-        }
-
-        $offer->image_2 = !empty($images[1]) ? $images[1] : $empty;
-        $offer->image_3 = !empty($images[2]) ? $images[2] : $empty;
-
-        if (!empty($images[0])) {
-            $offer->image_1 = $images[0];
-        } else {
-            $cover = Image::getGlobalCover($product->id);
-
-            if (!empty($cover)) {
-                $offer->image_1 = $this->context->link->getImageLink($this->getImageRewrite($product, $lang), (int) $cover['id_image']);
-            } else {
-                $offer->image_1 = $empty;
-            }
-        }
-
-        return $offer;
-    }
-
-    /**
-     * Gets the cart object.
-     *
-     * @param int $currency Currency ID.
-     * @param int $carrier  Carrier ID.
-     * @param int $lang     Language ID.
-     * @param int $shop     Shop ID.
-     *
-     * @return Cart
-     */
-    protected function getCart($currency, $carrier, $lang, $shop)
-    {
-        $cart              = new Cart(0);
-        $cart->id_currency = $currency;
-        $cart->id_lang     = $lang;
-        $cart->id_carrier  = $carrier;
-        $cart->id_shop     = $shop;
-
-        return $cart;
-    }
-
-    /**
-     * Gets the link rewrite for an image of the given product.
-     *
-     * @param Product $product Product object.
-     * @param int     $lang    Language ID.
-     *
-     * @return string
-     */
-    protected function getImageRewrite($product, $lang)
-    {
-        if (!empty($product->link_rewrite)) {
-            return is_array($product->link_rewrite) && !empty($product->link_rewrite[$lang]) ? $product->link_rewrite[$lang] : $product->link_rewrite;
-        } else {
-            return is_array($product->name) && !empty($product->name[$lang]) ? $product->name[$lang] : $product->name;
-        }
-    }
-
-    /**
-     * Clears the product description.
-     *
-     * @param Product $product Product object.
-     * @param int     $lang    Language ID.
-     *
-     * @return string
-     */
-    protected function clearDescription($product, $lang)
-    {
-        return trim(trim(strip_tags(is_array($product->description_short) ? $product->description_short[$lang] : $product->description_short), PHP_EOL), ' ');
-    }
-
-    /**
      * Generates the HTML of the generator link in the configuration form.
      *
      * @param Provider $provider Feed provider.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function getGenerateFeedHtml($provider)
     {
@@ -624,6 +471,7 @@ class PitticaTrovaprezzi extends Module
      * @param Provider $provider Feed provider.
      *
      * @return void
+     * @since  1.0.0
      */
     protected function getViewFeedHtml($provider)
     {

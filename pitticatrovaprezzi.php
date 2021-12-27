@@ -41,7 +41,7 @@ class PitticaTrovaprezzi extends Module
     {
         $this->name          = 'pitticatrovaprezzi';
         $this->tab           = 'front_office_features';
-        $this->version       = '1.3.3';
+        $this->version       = '1.3.4';
         $this->author        = 'Pittica';
         $this->need_instance = 1;
         $this->bootstrap     = 1;
@@ -340,8 +340,13 @@ class PitticaTrovaprezzi extends Module
         $country  = new Country((int) Configuration::get('PS_COUNTRY_DEFAULT'));
         $products = Product::getProducts($lang, 0, 0, 'id_product', 'ASC', false, true);
         $shops    = $id_shop === null ? Shop::getShops(true, null, true) : array($id_shop);
-        
         foreach ($shops as $shop) {
+            $free = (float) Configuration::get('PS_SHIPPING_FREE_PRICE', null, null, $shop);
+
+            if ($free <= 0.0) {
+                $free = null;
+            }
+            
             foreach ($products as $p) {
                 $product    = new Product((int) $p['id_product'], $lang, (int) $shop);
                 $attributes = $product->getAttributesResume($lang, ': ');
@@ -377,7 +382,7 @@ class PitticaTrovaprezzi extends Module
                             $offer->part_number          = empty($attribute['reference']) ? $ean : $attribute['reference'];
                             $offer->ean_code             = $ean;
 
-                            $offer->updateShippingCost($shop, $currency, $carrier, $country, $lang, $minimal, $product, (int) $attribute['id_product_attribute']);
+                            $offer->updateShippingCost($shop, $currency, $carrier, $country, $lang, $minimal, $product, (int) $attribute['id_product_attribute'], $free);
                             $offer->populateImages($this->context, $product, $lang, $shop);
 
                             $offer->add();
@@ -399,7 +404,7 @@ class PitticaTrovaprezzi extends Module
                         $offer->part_number = empty($product->reference) ? $product->ean13 : $product->reference;
                         $offer->ean_code    = $product->ean13;
 
-                        $offer->updateShippingCost($shop, $currency, $carrier, $country, $lang, $minimal, $product);
+                        $offer->updateShippingCost($shop, $currency, $carrier, $country, $lang, $minimal, $product, null, $free);
                         $offer->populateImages($this->context, $product, $lang, $shop);
 
                         $offer->add();

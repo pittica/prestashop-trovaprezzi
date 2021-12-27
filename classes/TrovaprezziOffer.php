@@ -246,46 +246,51 @@ class TrovaprezziOffer extends ObjectModel
     /**
      * Calculates and updates the price.
      *
-     * @param int      $shop      Shop ID.
-     * @param int      $currency  Currency ID.
-     * @param int      $carrier   Carrier ID.
-     * @param Country  $country   Country object.
-     * @param int      $lang      Language ID.
-     * @param int      $quantity  Quantity ID.
-     * @param Product  $product   Product object.
-     * @param int|null $attribute Attribute ID.
+     * @param int        $shop      Shop ID.
+     * @param int        $currency  Currency ID.
+     * @param int        $carrier   Carrier ID.
+     * @param Country    $country   Country object.
+     * @param int        $lang      Language ID.
+     * @param int        $quantity  Quantity ID.
+     * @param Product    $product   Product object.
+     * @param int|null   $attribute Attribute ID.
+     * @param float|null $free      Free shipping limit.
      *
      * @return TrovaprezziOffer
      * @since  1.3.2
      */
-    public function updateShippingCost($shop, $currency, $carrier, $country, $lang, $quantity, $product, $attribute = null)
+    public function updateShippingCost($shop, $currency, $carrier, $country, $lang, $quantity, $product, $attribute = null, $free = null)
     {
-        $cart              = new Cart(0);
-        $cart->id_currency = $currency;
-        $cart->id_lang     = $lang;
-        $cart->id_carrier  = $carrier;
-        $cart->id_shop     = $shop;
+        if ($free !== null && $this->price >= (float) $free) {
+            $this->shipping_cost = (float) $product->additional_shipping_cost;
+        } else {
+            $cart              = new Cart(0);
+            $cart->id_currency = $currency;
+            $cart->id_lang     = $lang;
+            $cart->id_carrier  = $carrier;
+            $cart->id_shop     = $shop;
 
-        $this->shipping_cost = $cart->getPackageShippingCost(
-            $carrier,
-            true,
-            $country,
-            array(
+            $this->shipping_cost = $cart->getPackageShippingCost(
+                $carrier,
+                true,
+                $country,
                 array(
-                    'id_product'               => $product->id,
-                    'id_product_attribute'     => $attribute,
-                    'id_shop'                  => $shop,
-                    'cart_quantity'            => $quantity,
-                    'is_virtual'               => $product->is_virtual,
-                    'id_address_delivery'      => null,
-                    'id_customization'         => null,
-                    'weight'                   => $this->weight,
-                    'additional_shipping_cost' => $product->additional_shipping_cost
+                    array(
+                        'id_product'               => $product->id,
+                        'id_product_attribute'     => $attribute,
+                        'id_shop'                  => $shop,
+                        'cart_quantity'            => $quantity,
+                        'is_virtual'               => $product->is_virtual,
+                        'id_address_delivery'      => null,
+                        'id_customization'         => null,
+                        'weight'                   => $this->weight,
+                        'additional_shipping_cost' => $product->additional_shipping_cost
+                    )
                 )
-            )
-        );
+            );
 
-        $cart->delete();
+            $cart->delete();
+        }
 
         return $this;
     }

@@ -3,12 +3,12 @@
 /**
  * PrestaShop Module - pitticatrovaprezzi
  *
- * Copyright 2020-2021 Pittica S.r.l.
+ * Copyright 2020-2022 Pittica S.r.l.
  *
  * @category  Module
  * @package   Pittica/Trovaprezzi
  * @author    Lucio Benini <info@pittica.com>
- * @copyright 2020-2021 Pittica S.r.l.
+ * @copyright 2020-2022 Pittica S.r.l.
  * @license   http://opensource.org/licenses/LGPL-3.0  The GNU Lesser General Public License, version 3.0 ( LGPL-3.0 )
  * @link      https://github.com/pittica/prestashop-trovaprezzi
  */
@@ -41,7 +41,7 @@ class PitticaTrovaprezzi extends Module
     {
         $this->name          = 'pitticatrovaprezzi';
         $this->tab           = 'front_office_features';
-        $this->version       = '1.3.4';
+        $this->version       = '1.3.5';
         $this->author        = 'Pittica';
         $this->need_instance = 1;
         $this->bootstrap     = 1;
@@ -175,7 +175,7 @@ class PitticaTrovaprezzi extends Module
         $helper->title                    = $this->displayName;
         $helper->submit_action            = 'savepitticatrovaprezzi';
 
-        $check    = $this->context->link->getAdminLink('AdminTrovaprezzi');
+        $check = $this->context->link->getAdminLink('AdminTrovaprezzi');
 
         $helper->fields_value = array(
             'generate'             => $this->getGenerateFeedHtml(null),
@@ -335,13 +335,13 @@ class PitticaTrovaprezzi extends Module
         $root     = (int) Configuration::get('PS_ROOT_CATEGORY');
         $home     = (int) Configuration::get('PS_HOME_CATEGORY');
         $currency = (int) Configuration::get('PS_CURRENCY_DEFAULT');
-        $carrier  = (int) Configuration::get('PITTICA_TROVAPREZZI_CARRIER');
         $group    = (int) Configuration::get('PS_GUEST_GROUP');
         $country  = new Country((int) Configuration::get('PS_COUNTRY_DEFAULT'));
         $products = Product::getProducts($lang, 0, 0, 'id_product', 'ASC', false, true);
         $shops    = $id_shop === null ? Shop::getShops(true, null, true) : array($id_shop);
         foreach ($shops as $shop) {
-            $free = (float) Configuration::get('PS_SHIPPING_FREE_PRICE', null, null, $shop);
+            $free    = (float) Configuration::get('PS_SHIPPING_FREE_PRICE', null, null, $shop);
+            $carrier = (int) Configuration::get('PITTICA_TROVAPREZZI_CARRIER', null, null, $shop);
 
             if ($free <= 0.0) {
                 $free = null;

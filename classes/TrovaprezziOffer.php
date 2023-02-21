@@ -158,7 +158,7 @@ class TrovaprezziOffer extends ObjectModel
      * @param int     $shop    Shop ID.
      * @param int     $lang    Language ID.
      *
-     * @return Offer
+     * @return TrovaprezziOffer
      * @since  1.3.2
      */
     public static function fromProduct($product, $shop, $lang)
